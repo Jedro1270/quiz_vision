@@ -12,15 +12,20 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   bool textScanning = false;
+  bool generatingQuiz = false;
+
   XFile? imageFile;
+
   String scannedText = "";
   String generatedQuiz = "";
-  String testType = "Identify the term being described";
+  String testType = "Identification";
+
   int numberOfQuestions = 1;
 
   final List<String> testTypes = <String>[
-    'Identify the term being described',
-    'True or False'
+    'Identification',
+    'True or False',
+    'Multiple Choice'
   ];
 
   late TextEditingController _openAITextController;
@@ -80,26 +85,26 @@ class _HomeScreenState extends State<HomeScreen> {
                 const SizedBox(
                   height: 20,
                 ),
-                const Text(
-                  "Number of Questions",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                SizedBox(
-                  width: 50,
-                  height: 40,
-                  child: TextField(
-                    controller: _numberOfQuestionsController,
-                    keyboardType: TextInputType.number,
-                    onChanged: (String? value) {
-                      setState(() {
-                        numberOfQuestions = int.tryParse(value!) ?? 0;
-                      });
-                    },
-                    decoration: const InputDecoration(
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                ),
+                // const Text(
+                //   "Number of Questions",
+                //   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                // ),
+                // SizedBox(
+                //   width: 50,
+                //   height: 40,
+                //   child: TextField(
+                //     controller: _numberOfQuestionsController,
+                //     keyboardType: TextInputType.number,
+                //     onChanged: (String? value) {
+                //       setState(() {
+                //         numberOfQuestions = int.tryParse(value!) ?? 0;
+                //       });
+                //     },
+                //     decoration: const InputDecoration(
+                //       border: OutlineInputBorder(),
+                //     ),
+                //   ),
+                // ),
                 const SizedBox(
                   height: 20,
                 ),
@@ -185,6 +190,18 @@ class _HomeScreenState extends State<HomeScreen> {
                 const SizedBox(
                   height: 20,
                 ),
+                generatingQuiz
+                    ? const CircularProgressIndicator()
+                    : ElevatedButton(
+                        onPressed: () {
+                          generateQuiz(
+                              scannedText, testType, numberOfQuestions);
+                        },
+                        child: const Text("Generate Quiz"),
+                      ),
+                const SizedBox(
+                  height: 20,
+                ),
                 Text(
                   generatedQuiz,
                   style: const TextStyle(fontSize: 20),
@@ -204,9 +221,7 @@ class _HomeScreenState extends State<HomeScreen> {
           imageFile = pickedImage;
         });
 
-        String learningMaterials = await getRecognisedText(pickedImage);
-
-        generateQuiz(learningMaterials, testType, numberOfQuestions);
+        getRecognisedText(pickedImage);
       }
     } catch (e) {
       setState(() {
@@ -217,7 +232,7 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  Future<String> getRecognisedText(XFile image) async {
+  void getRecognisedText(XFile image) async {
     final inputImage = InputImage.fromFilePath(image.path);
     final textDetector = GoogleMlKit.vision.textRecognizer();
 
@@ -235,30 +250,63 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() {
       textScanning = false;
     });
-
-    return scannedText;
   }
 
   Future<void> generateQuiz(
       String learningMaterials, String testType, int numberOfQuestions) async {
     setState(() {
-      textScanning = true;
+      generatingQuiz = true;
     });
 
-    OpenAICompletionModel completion = await OpenAI.instance.completion.create(
-      model: "text-davinci-003",
-      prompt: '''
-Create quiz using the "$testType" test type.
+    String prompt = "";
 
-There must be $numberOfQuestions questions in the quiz.
+    switch (testType) {
+      case 'Identification':
+        prompt = '''
+Create an quiz where the students need to identify the terms being described.
+
+Follow the format
+Question:
+Answer:
+
+The answer must be a key term from the learning materials.
+''';
+        break;
+      case 'True or False':
+        prompt = '''
+Create a True or False quiz.
+
+Follow the format
+Question:
+Answer:
+''';
+        break;
+      case 'Multiple Choice':
+        prompt = '''
+Create a Multiple Choice quiz.
+
+Follow the format
+Question:
+Choices:
+A.
+B.
+C.
+D.
+Answer:
+''';
+        break;
+    }
+
+    prompt += '''
+Include the answers.
 
 Use this text as the basis:
 $learningMaterials
+''';
 
-Group the questions by the test types. 
-
-Include the answers.
-''',
+    OpenAICompletionModel completion = await OpenAI.instance.completion.create(
+      model: "text-davinci-003",
+      prompt: prompt,
       maxTokens: 3000,
       temperature: 0.5,
       n: 1,
@@ -267,7 +315,7 @@ Include the answers.
 
     setState(() {
       generatedQuiz = completion.choices.first.text;
-      textScanning = false;
+      generatingQuiz = false;
     });
   }
 }

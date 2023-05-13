@@ -1,16 +1,7 @@
-# quiz_vision
+# Quiz Vision
 
-A new Flutter project.
+This app is designed to help teachers and educators easily create quizzes from learning materials. With the app, users can scan or upload their learning material and generate quizzes with answers.
 
-## Getting Started
-
-This project is a starting point for a Flutter application.
-
-A few resources to get you started if this is your first Flutter project:
-
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## Features
+- Easy scanning or uploading of learning materials
+- Automatic quiz generation from scanned/uploaded material
